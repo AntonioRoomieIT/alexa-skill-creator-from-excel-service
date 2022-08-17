@@ -1,0 +1,16 @@
+service: parse-excel-to-json-model
+provider:
+  name: aws
+  runtime: nodejs16.x
+  stage: dev
+  region: us-east-1
+  timeout: 15
+  environment:
+    AUTH_USER: '0bFtpiOrE9sdITnbMoU1Ewn5KVUst77d'
+    AUTH_PASS: 'aPXmChhO1O7OtnTc'
+    DEBUG: '*'
+functions:
+  app:
+    handler: lambda/custom/index.handler
+    events:
+      - http: POST /

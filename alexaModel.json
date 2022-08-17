@@ -1,0 +1,140 @@
+{
+    "interactionModel": {
+        "languageModel": {
+            "invocationName": "funcion publica",
+            "intents": [
+                {
+                    "name": "AMAZON.CancelIntent",
+                    "samples": [
+                        "cancelar",
+                        "cancelado"
+                    ]
+                },
+                {
+                    "name": "AMAZON.HelpIntent",
+                    "samples": [
+                        "ayuda",
+                        "ayudame"
+                    ]
+                },
+                {
+                    "name": "AMAZON.StopIntent",
+                    "samples": [
+                        "alto",
+                        "detente"
+                    ]
+                },
+                {
+                    "name": "AMAZON.NavigateHomeIntent",
+                    "samples": [
+                        "Navegar en casa",
+                        "navigate home"
+                    ]
+                },
+                {
+                    "name": "obtenerEstacion",
+                    "samples": [
+                        "la estacion es {estacion}",
+                        "la estacion es {estacion} el dia {fecha}",
+                        "estacion {estacion} el dia {fecha}"
+                    ],
+                    "slots": [
+                        {
+                            "name": "estacion",
+                            "type": "estaciones",
+                            "samples": [
+                                "{estacion}"
+                            ]
+                        },
+                        {
+                            "name": "fecha",
+                            "type": "AMAZON.DATE",
+                            "samples": [
+                                "{fecha}"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "HelloWorldIntent",
+                    "samples": [
+                        "hola",
+                        "hola como estas",
+                        "hola mucho gusto {test}"
+                    ],
+                    "slots": [
+                        {
+                            "name": "test",
+                            "type": "testhello",
+                            "samples": [
+                                "{test}"
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "types": [
+                {
+                    "name": "estaciones",
+                    "values": [
+                        {
+                            "name": {
+                                "value": "primavera",
+                                "synonyms": [
+                                    "prima",
+                                    "primaverita"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "verano",
+                                "synonyms": [
+                                    "veranito"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "invierno",
+                                "synonyms": [
+                                    "inviernito"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "otoño",
+                                "synonyms": [
+                                    "otoñito"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "testhello",
+                    "values": [
+                        {
+                            "name": {
+                                "value": "probando",
+                                "synonyms": [
+                                    "probandito",
+                                    "probandio"
+                                ]
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "jugando",
+                                "synonyms": [
+                                    "jugandito"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}
