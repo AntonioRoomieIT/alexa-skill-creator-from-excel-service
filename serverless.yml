@@ -1,4 +1,4 @@
-service: parse-excel-to-json-model
+service: upload-file-to-s3-for-chatbots
 provider:
   name: aws
   runtime: nodejs16.x
@@ -6,8 +6,10 @@ provider:
   region: us-east-1
   timeout: 15
   environment:
-    AUTH_USER: '0bFtpiOrE9sdITnbMoU1Ewn5KVUst77d'
-    AUTH_PASS: 'aPXmChhO1O7OtnTc'
+    AWS_ACCESS_KEY_IDD: 'AKIA6O2CZXAF6PZPILFK'
+    AWS_SECRET_ACCESS_KEYY: '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'
+    AWS_BUCKET_NAME: 'base64-to-file'
+    ENCODE_BASE: 'base64'
     DEBUG: '*'
 functions:
   app:

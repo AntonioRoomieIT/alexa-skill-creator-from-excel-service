@@ -1,217 +1,110 @@
-const { read } = require('sheetjs-style');
-const aws = require('aws-sdk');
-const s3 = new aws.S3();
+const config = require('./config.js')
+const AWS = require('aws-sdk');
 const fs = require('fs');
 
 exports.handler = async (event) => {
-  const bucketName = 'parse-excel-to-json-mode-serverlessdeploymentbuck-1flg0sdr6936l';
-  const fileKey = 'excel-versions/content.xlsx';
-  let file = await s3.getObject({ Bucket: bucketName, Key: fileKey }).promise();
-  const wb = read(file.Body);
-  var modelAlexaJSON = {
-    interactionModel: {
-      languageModel: {
-        invocationName: "funcion publica",
-        intents: [
-        ],
-        types: [
-        ]
-      },
-      dialog: {
-
-      },
-      prompts: {
-
-      }
+  try {
+    if (typeof event.file_extension === 'undefined' || event.file_extension === null || event.file_extension.length < 1) {
+      return { error: "file_extension is null or not exist" };
     }
-  };
-
-
-  hanlderOfSystemIntents(wb.Sheets.INTENTS_SYSTEM, modelAlexaJSON);
-  hanlderOfIntents(wb.Sheets.INTENTS, modelAlexaJSON);
-  handlerSlostList(wb.Sheets.SLOTS_LIST, modelAlexaJSON);
-  handlerSlostPerIntent(wb.Sheets.SLOTS_OF_INTENTS, modelAlexaJSON);
-  hanlerOfDialog(wb.Sheets.SLOTS_OF_INTENTS, modelAlexaJSON);
-
-
-  fs.writeFile('alexaModel.json', JSON.stringify(modelAlexaJSON), err => {
-    if (err) {
-      console.error(err);
+    if (typeof event.buffer === 'undefined' || event.buffer === null || event.buffer.length < 1) {
+      return { error: "buffer is null or not exist" };
     }
-    console.log("exito");
-  });
+    if (Number.isInteger(event.time_signed_in_seconds) === false || event.time_signed_in_seconds < 1 || typeof event.time_signed_in_seconds === 'undefined' || event.time_signed_in_seconds === null || event.time_signed_in_seconds.length < 1) {
+      return { error: "time_signed_in_seconds must be an integer at least 1 and must not be null" };
+    }
+    if (Number.isInteger(event.time_Lifecycle_in_days) === false || event.time_Lifecycle_in_days < 1 || typeof event.time_Lifecycle_in_days === 'undefined' || event.time_Lifecycle_in_days === null || event.time_Lifecycle_in_days.length < 1) {
+      return { error: "time_Lifecycle_in_days must be an integer at least 1 and must not be null" };
+    }
+    const s3 = new AWS.S3({
+      accessKeyId: config.AWS_KEY,
+      secretAccessKey: config.AWS_SECRET
+    }), fileName = uuidv4(), signedUrlExpireSeconds = event.time_signed_in_seconds, expirationDays = event.time_Lifecycle_in_days, extensionFile = event.file_extension, response = {};
+    const finalURL = await getURL(s3, event, fileName, extensionFile, signedUrlExpireSeconds);
+
+    lifeCycle(s3, event, fileName, extensionFile, expirationDays, signedUrlExpireSeconds);
+    const getURLOfObject = await uploadToS3(s3, event, fileName, extensionFile, signedUrlExpireSeconds, finalURL);
+    return {
+      statusCode: 200,
+      url: getURLOfObject.sharedURL,
+    };
+
+  } catch (error) {
+    console.log(error);
+  }
 };
 
-const hanlderOfIntents = (intents, modelAlexaJSON) => {
-  var arrOfIntent = [];
-  var intentPerIntent = {};
-  for (let [key, value] of Object.entries(intents)) {
-    // console.log(key, value);
-    if (key.includes('A')) {
-      if (key != 'A1') {
-        //NOMBRE DE INTENT
-        intentPerIntent = {};
-        //NOMBRE DE INTENT
-        //console.log(cleanTH(value.r));
-        intentPerIntent.name = cleanTH(value.r);
-      }
-    }
-    if (key.includes('B')) {
-      if (key != 'B1') {
-        //FRASES
-        intentPerIntent.samples = parseToArrayFromExcelWithComas(value.r);
-        arrOfIntent.push(intentPerIntent);
-      }
-    }
-    if (key.includes('C')) {
-      if (key != 'C1') {
-        //NECESITA CONFIRMACION?
-        //console.log(cleanTH(value.r));
-      }
-    }
-    if (key.includes('D')) {
-      if (key != 'D1') {
-        //PROMPTS
-        //console.log(cleanTH(value.r));
-      }
-    }
-  }
-  modelAlexaJSON.interactionModel.languageModel.intents = modelAlexaJSON.interactionModel.languageModel.intents.concat(arrOfIntent);
-}
-const hanlderOfSystemIntents = (intents, modelAlexaJSON) => {
-  var arrOfIntentSystem = [];
-  var intentPerIntentSys = {};
-  for (let [key, value] of Object.entries(intents)) {
-    if (key.includes('A')) {
-      if (key != 'A1') {
-        intentPerIntentSys = {};
-        //NOMBRE DE INTENT
-        intentPerIntentSys.name = cleanTH(value.r);
-      }
-    }
-    if (key.includes('B')) {
-      if (key != 'B1') {
-        //FRASES
-        intentPerIntentSys.samples = parseToArrayFromExcelWithComas(value.r);
-        arrOfIntentSystem.push(intentPerIntentSys);
-      }
-    }
-  }
-  modelAlexaJSON.interactionModel.languageModel.intents = arrOfIntentSystem;
-}
-const handlerSlostList = (slots, modelAlexaJSON) => {
-  var arrOfSlots = [];
-  var slotPerSlor = {};
-  for (let [key, value] of Object.entries(slots)) {
-    if (key.includes('A')) {
-      if (key != 'A1') {
-        //NOMBRE DE SLOTS
-        slotPerSlor = {};
-        slotPerSlor.name = cleanTH(value.r);
-      }
-    }
-    if (key.includes('B')) {
-      if (key != 'B1') {
-        //vALORES DE SLOTS
-        var slotsName = parseToArrayFromExcelWithComas(value.r);
-        var arrayOfValueSlot = [];
-        for (let x = 0; x < slotsName.length; x++) {
-          var namePerName = {};
-          var valuesTypes = {};
-          namePerName.value = slotsName[x];
-          valuesTypes.name = namePerName;
-          arrayOfValueSlot.push(valuesTypes);
-        }
-        slotPerSlor.values = arrayOfValueSlot;
-      }
-    }
-    if (key.includes('C')) {
-      if (key != 'C1') {
-        //SINONIMOS
-        var synonyms = parseToArrayFromExcelWithComas(value.r);
-        for (let x = 0; x < synonyms.length; x++) {
-          var synonymsPerValue = synonyms[x].split('-');
-          var valuesOfslots = slotPerSlor.values;
-          valuesOfslots[x]['name']['synonyms'] = synonymsPerValue;
-        }
-      }
-    }
-    if (key.includes('D')) {
-      if (key != 'D1') {
-        //IS SYSTEM SLOT?
-        if (cleanTH(value.r) === 'false') {
-          arrOfSlots.push(slotPerSlor);
-        }
-      }
-    }
-  }
-  modelAlexaJSON.interactionModel.languageModel.types = arrOfSlots;
-}
-const handlerSlostPerIntent = (slotsOfIntents, modelAlexaJSON) => {
-  var arrTheSlotsOfAnyIntent = [];
-  var slotPerSlotOfIntent = {};
-  var groupWithIntentName = {};
-  var whatIsTheIntentName = '';
-  for (let [key, value] of Object.entries(slotsOfIntents)) {
-    if (key.includes('A')) {
-      if (key != 'A1') {
-        if (whatIsTheIntentName != cleanTH(value.r)) {
-          whatIsTheIntentName = cleanTH(value.r);
-          arrTheSlotsOfAnyIntent = [];
-        }
-        groupWithIntentName.intentName = whatIsTheIntentName;
-      }
-    }
-    if (key.includes('B')) {
-      if (key != 'B1') {
-        //SLOT NAME
-        slotPerSlotOfIntent = {};
-        slotPerSlotOfIntent.name = cleanTH(value.r);
-      }
-    }
-    if (key.includes('C')) {
-      if (key != 'C1') {
-        //SLOT TYPE
-        slotPerSlotOfIntent.type = cleanTH(value.r);
-      }
-    }
-    if (key.includes('F')) {
-      if (key != 'F1') {
-        //SLOT USER UTTERANCE
-        slotPerSlotOfIntent.samples = [cleanTH(value.r)];
-        arrTheSlotsOfAnyIntent.push(slotPerSlotOfIntent);
-        groupWithIntentName.slots = arrTheSlotsOfAnyIntent;
-        var intents = modelAlexaJSON.interactionModel.languageModel.intents;
-        for (let index = 0; index < intents.length; index++) {
-          if (intents[index].name === groupWithIntentName.intentName) {
-            intents[index].slots = groupWithIntentName.slots;
-          }
-        }
-      }
-    }
-  }
-}
-const hanlerOfDialog = (slotsOfIntents, modelAlexaJSON) => {
 
 
-  for (let [key, value] of Object.entries(slotsOfIntents)) {
-    console.log(key,value);
-    if (key.includes('A')) {
-      if (key != 'A1') {
+
+const uuidv4 = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+const uploadToS3 = async (s3, event, fileName, extensionFile, signedUrlExpireSeconds, finalURL) => {
+  const data = await s3.upload({
+    Bucket: config.AWS_BUCKET,
+    Key: event.chatbot.toLowerCase() + fileName + extensionFile,
+    Body: Buffer.from(event.buffer, config.ENCODE_BASE)
+  }, (err, data) => {
+    if (err) {
+      console.log(err);
+    } else {
+      try {
+        console.log("upload correct");
+        data.finalURL = finalURL;
+      } catch (error) {
+        return { "error": error };
       }
+
     }
-  }
-}
-const cleanTH = (cell) => {
-  var newCell = cell.replace('<t>', '');
-  newCell = newCell.replace('</t>', '');
-  return newCell;
-}
-const parseToArrayFromExcelWithComas = (text) => {
-  text = cleanTH(text);
-  text = text.slice(1, -1);
-  return text.split(',');
+  }).promise()
+  data.sharedURL = finalURL;
+  console.log("Final Data");
+  console.log(data);
+  return data
 }
 
+function lifeCycle(s3, event, fileName, extensionFile, expirationDays, signedUrlExpireSeconds) {
+  s3.putBucketLifecycleConfiguration({
+    Bucket: config.AWS_BUCKET,
+    LifecycleConfiguration: {
+      Rules: [
+        {
+          Expiration: {
+            Days: expirationDays,
+          },
+          Filter: {
+            Prefix: event.chatbot.toLowerCase() + fileName + extensionFile,
+          },
+          Status: 'Enabled',
+        },
+      ],
+    },
+  }, function (err, data) {
+    if (err) { console.log(err, err.stack); }
+    else {
+      console.log("putBucketLifecycleConfiguration correct.");
+      // getURL(s3,event,fileName,extensionFile,signedUrlExpireSeconds)
+    }
 
+  })
+}
+
+async function getURL(s3, event, fileName, extensionFile, signedUrlExpireSeconds) {
+  const signedURL = s3.getSignedUrl('getObject', {
+    Bucket: config.AWS_BUCKET,
+    Key: event.chatbot.toLowerCase() + fileName + extensionFile,
+    Expires: signedUrlExpireSeconds
+  });
+
+  return signedURL;
+}
+
+function reToRUL(data) {
+  console.log(data);
+}
 
